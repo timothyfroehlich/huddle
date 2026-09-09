@@ -1,0 +1,23 @@
+{
+  "huddle": {
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "node ./lib/huddle-antigravity-adapter.cjs before-agent",
+        "timeout": 10
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ./lib/huddle-antigravity-adapter.cjs post-tool",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

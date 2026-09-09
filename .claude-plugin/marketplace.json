@@ -1,0 +1,18 @@
+{
+  "name": "huddle",
+  "description": "Single-plugin marketplace for the huddle coordination channel",
+  "owner": {
+    "name": "Tim Froehlich"
+  },
+  "plugins": [
+    {
+      "name": "huddle",
+      "description": "Inter-session coordination channel for agent sessions",
+      "version": "1.0.0",
+      "source": "./",
+      "author": {
+        "name": "Tim Froehlich"
+      }
+    }
+  ]
+}

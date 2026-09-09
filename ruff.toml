@@ -1,0 +1,26 @@
+# Ruff config for the huddle hook tests.
+#
+# Mirrors the rule selection these tests were written under in PinPoint
+# (repo-root ruff.toml) so the move doesn't silently change what lints. Ruff's
+# default selection is much wider and flags things this suite does on purpose:
+# `subprocess.run` without `check=`, naive `date.today()` in fixtures.
+
+target-version = "py312"
+
+[lint]
+select = [
+  "E4", # pycodestyle import errors
+  "E7", # pycodestyle statement errors
+  "E9", # pycodestyle runtime errors
+  "F",  # pyflakes
+  "I",  # isort
+  "W",  # pycodestyle warnings
+]
+
+[lint.per-file-ignores]
+"tests/*.py" = ["E402"]
+
+[format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"

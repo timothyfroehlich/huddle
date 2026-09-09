@@ -1,0 +1,56 @@
+{
+  "name": "huddle",
+  "version": "1.0.0",
+  "description": "Inter-session coordination channel: agent sessions announce work, read each other's updates, and avoid colliding on the same repository.",
+  "author": {
+    "name": "Tim Froehlich"
+  },
+  "homepage": "https://github.com/timothyfroehlich/huddle",
+  "repository": "https://github.com/timothyfroehlich/huddle",
+  "license": "MIT",
+  "keywords": [
+    "coordination",
+    "multi-session",
+    "hooks",
+    "beads"
+  ],
+  "skills": "./skills/",
+  "hooks": {
+    "hooks": {
+      "SessionStart": [
+        {
+          "matcher": "startup|resume|clear|compact",
+          "hooks": [
+            {
+              "type": "command",
+              "command": "bash \"${CLAUDE_PLUGIN_ROOT}/bin/huddle-hook\" session-start",
+              "statusMessage": "Loading Huddle context"
+            }
+          ]
+        }
+      ],
+      "UserPromptSubmit": [
+        {
+          "hooks": [
+            {
+              "type": "command",
+              "command": "bash \"${CLAUDE_PLUGIN_ROOT}/bin/huddle-hook\" prompt",
+              "statusMessage": "Checking Huddle"
+            }
+          ]
+        }
+      ],
+      "PostToolUse": [
+        {
+          "hooks": [
+            {
+              "type": "command",
+              "command": "bash \"${CLAUDE_PLUGIN_ROOT}/bin/huddle-hook\" post-tool",
+              "statusMessage": "Checking Huddle"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "huddle",
+  "version": "1.0.0",
+  "description": "Inter-session coordination channel: agent sessions announce work, read each other's updates, and avoid colliding on the same repository.",
+  "author": {
+    "name": "Tim Froehlich"
+  },
+  "homepage": "https://github.com/timothyfroehlich/huddle",
+  "repository": "https://github.com/timothyfroehlich/huddle",
+  "license": "MIT",
+  "keywords": [
+    "coordination",
+    "multi-session",
+    "hooks",
+    "beads"
+  ]
+}

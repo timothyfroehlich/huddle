@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# huddle-hook — the single entrypoint every harness's hook configuration points at.
+#
+# Why one entrypoint rather than four hook commands naming four scripts:
+# Codex records hook trust as a SHA-256 over the *normalized handler definition*,
+# keyed positionally as "<manifest>:<event>:<group idx>:<handler idx>". Editing a
+# hook's command string — or merely reordering matcher groups — changes that hash,
+# and Codex then silently skips the hook while still reporting it as enabled. So
+# the command strings in the manifests must never change. All churn lives here,
+# below the trust boundary.
+#
+# Usage: huddle-hook <event>
+#   session-start   SessionStart          -> huddle-session-start.sh
+#   prompt          UserPromptSubmit      -> huddle-poll.sh
+#   post-tool       PostToolUse (any)     -> huddle-poll.sh, throttled
+#   pr-announce     PostToolUse (Bash|PR) -> huddle-pr-announce.sh
+#
+# stdin is the harness's hook payload and is forwarded unchanged. stdout is
+# whatever the dispatched script emits, which the harness injects as context.
+
+set -euo pipefail
+
+HUDDLE_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+LIB="$HUDDLE_ROOT/lib"
+
+event="${1:-}"
+
+case "$event" in
+  session-start)
+    exec bash "$LIB/huddle-session-start.sh"
+    ;;
+  prompt)
+    exec bash "$LIB/huddle-poll.sh"
+    ;;
+  post-tool)
+    # Throttled: PostToolUse fires on every tool call, and the poll is a read
+    # against the beads database. 180s matches the pre-plugin registration.
+    export HUDDLE_THROTTLE_SECONDS="${HUDDLE_THROTTLE_SECONDS:-180}"
+    exec bash "$LIB/huddle-poll.sh"
+    ;;
+  pr-announce)
+    exec bash "$LIB/huddle-pr-announce.sh"
+    ;;
+  "")
+    printf 'huddle-hook: missing event name\n' >&2
+    exit 2
+    ;;
+  *)
+    printf 'huddle-hook: unknown event %s\n' "$event" >&2
+    exit 2
+    ;;
+esac
