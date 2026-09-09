@@ -1,4 +1,4 @@
-"""Unit tests for the quiet-session nudge in ~/.agents/huddle/huddle-poll.sh (PP-llkj).
+"""Unit tests for the quiet-session nudge in <huddle>/lib/huddle-poll.sh (PP-llkj).
 
 The huddle's real failure mode isn't sessions that never introduce themselves —
 it's sessions that post a kickoff and then go silent while the work changes

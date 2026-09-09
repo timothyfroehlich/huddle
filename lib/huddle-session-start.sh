@@ -13,7 +13,7 @@
 # multiple parallel sessions are active. The SessionStart hook is the only
 # place session_id is guaranteed-correct without an external diagnostic.
 #
-# Pairs with ~/.agents/huddle/huddle-poll.sh — that's the new-comment injection
+# Pairs with <huddle>/lib/huddle-poll.sh — that's the new-comment injection
 # hook; this one is just identity announcement.
 #
 # Stdin payload schema (Claude Code shape; other harnesses adapt to this via
@@ -154,7 +154,7 @@ if [[ -z "$ROOT_ID" && ! -f "$CONFIG_FILE" ]]; then
   printf 'for agents to coordinate on, summarizes each day'\''s chatter into ~50-token\n'
   printf 'digests so it stays cheap to read, and rotates at local midnight.\n\n'
   printf 'To bootstrap, run:\n'
-  printf '    bash ~/.agents/huddle/huddle-bootstrap.sh\n\n'
+  printf '    bash %s/huddle-bootstrap.sh\n\n' "$HUDDLE_LIB_DIR"
   printf 'That creates the root bead, today'\''s daily, this month'\''s monthly, and writes\n'
   printf '%s with the IDs. Re-running is safe.\n' "$CONFIG_FILE"
   exit 0
@@ -163,7 +163,7 @@ ROOT_ID=$(jq -r '.root_bead_id // ""' "$CONFIG_FILE" 2>/dev/null)
 if [[ -z "$ROOT_ID" ]]; then
   printf '## ⚠️ Huddle not bootstrapped\n\n'
   printf 'config.json exists but has no root_bead_id. Re-run:\n'
-  printf '    bash ~/.agents/huddle/huddle-bootstrap.sh\n'
+  printf '    bash %s/huddle-bootstrap.sh\n' "$HUDDLE_LIB_DIR"
   exit 0
 fi
 # Verify the root bead is still reachable. If it was deleted/closed/renamed
@@ -178,7 +178,7 @@ if ! bd show "$ROOT_ID" --json >/dev/null 2>&1; then
   printf 'config.json points at %s but `bd show %s` failed.\n' "$ROOT_ID" "$ROOT_ID"
   printf 'The bead may have been deleted, archived, or the bd workspace moved.\n\n'
   printf 'To rebuild:\n'
-  printf '    bash ~/.agents/huddle/huddle-bootstrap.sh\n'
+  printf '    bash %s/huddle-bootstrap.sh\n' "$HUDDLE_LIB_DIR"
   exit 0
 fi
 
@@ -348,7 +348,7 @@ if [[ "$SOURCE" == "compact" ]]; then
   else
     # shellcheck disable=SC2016  # backticks are literal Markdown
     printf 'This session (`%s`) is not registered in the huddle. Register with:\n' "$SESSION_ID"
-    printf '    bash ~/.agents/huddle/huddle-whoami.sh register <Harness>-<Topic> %s\n\n' "$SESSION_ID"
+    printf '    bash %s/huddle-whoami.sh register <Harness>-<Topic> %s\n\n' "$HUDDLE_LIB_DIR" "$SESSION_ID"
   fi
   emit_work_digest
   exit 0
@@ -360,7 +360,7 @@ if [[ -n "$NAME" ]]; then
   printf 'Your session_id: `%s`\n' "$SESSION_ID"
   printf 'Registered as: **%s** (self-filter active for your own posts)\n\n' "$NAME"
   printf 'If this scrolls out of context later, recall your name with:\n'
-  printf '    bash ~/.agents/huddle/huddle-whoami.sh whoami %s\n\n' "$SESSION_ID"
+  printf '    bash %s/huddle-whoami.sh whoami %s\n\n' "$HUDDLE_LIB_DIR" "$SESSION_ID"
   # Resolve today_bead_id for the copy-paste command (fail-open: fall back to placeholder)
   _TODAY_ID_REG=$(huddle_today_bead_id 2>/dev/null) || _TODAY_ID_REG="<today-bead-id>"
   [[ -n "$_TODAY_ID_REG" ]] || _TODAY_ID_REG="<today-bead-id>"
@@ -440,7 +440,7 @@ else
   printf 'Format: <Harness>-<Topic>, CamelCase, ASCII letters/digits/hyphens/underscores, under ~30 chars.\n'
   printf 'The harness prefix lets the user see "two Claudes and one Antigravity are running."\n\n'
   printf 'Register with:\n'
-  printf '    bash ~/.agents/huddle/huddle-whoami.sh register <YourName> %s\n\n' "$SESSION_ID"
+  printf '    bash %s/huddle-whoami.sh register <YourName> %s\n\n' "$HUDDLE_LIB_DIR" "$SESSION_ID"
   printf 'If the name is taken, the helper suggests variations.\n\n'
   if [[ "$HARNESS" != "Codex" ]]; then
     printf 'THEN, IF YOUR HARNESS HAS A SESSION-RENAME COMMAND, ask the user to run it with this\n'

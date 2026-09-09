@@ -12,7 +12,7 @@
 # Idempotent: re-running on an already-bootstrapped project prints status and
 # exits 0 without creating duplicate beads.
 #
-# Usage: bash ~/.agents/huddle/huddle-bootstrap.sh
+# Usage: bash <huddle>/lib/huddle-bootstrap.sh
 
 set -euo pipefail
 
@@ -130,7 +130,7 @@ print(today_id + ':' + today_date + ':' + monthly_id + ':' + monthly_month)
       if [[ -z "$RECOVER_TODAY_ID" ]]; then
         printf 'ERROR: Recovery failed — could not find an open "Huddle daily %s" child under %s.\n' "$TODAY" "$ROOT_ID" >&2
         printf 'Manual action required: create the daily bead and write root notes manually.\n' >&2
-        printf 'See: bash ~/.agents/huddle/huddle-bootstrap.sh (full bootstrap from scratch).\n' >&2
+        printf 'See: bash %s/huddle-bootstrap.sh (full bootstrap from scratch).\n' "$HUDDLE_LIB_DIR" >&2
         exit 1
       fi
       if [[ -z "$RECOVER_MONTHLY_ID" ]]; then
@@ -263,4 +263,4 @@ printf '  Today:     %s (%s)\n' "$TODAY_ID" "$TODAY"
 printf '  Monthly:   %s (%s)\n' "$MONTHLY_ID" "$MONTH"
 printf '\nHooks will now use the new bead hierarchy. PP-cvh remains open as historical archive.\n'
 # shellcheck disable=SC2016  # backticks are literal Markdown, not command substitution
-printf 'Run `bash ~/.agents/huddle/huddle-whoami.sh register <YourName> <session_id>` to register yourself.\n'
+printf 'Run `bash %s/huddle-whoami.sh register <YourName> <session_id>` to register yourself.\n' "$HUDDLE_LIB_DIR"

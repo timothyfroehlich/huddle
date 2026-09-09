@@ -20,7 +20,7 @@
 # can back-fill it before proceeding with the current rotation.
 #
 # Usage:
-#   output=$(bash ~/.agents/huddle/huddle-rotate.sh)
+#   output=$(bash <huddle>/lib/huddle-rotate.sh)
 #   # parse key=value lines:
 #   OLD_TODAY_ID=$(printf '%s\n' "$output" | grep '^OLD_TODAY=' | cut -d= -f2-)
 #   OLD_MONTHLY_ID=$(printf '%s\n' "$output" | grep '^OLD_MONTHLY=' | cut -d= -f2-)

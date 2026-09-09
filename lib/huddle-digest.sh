@@ -21,7 +21,7 @@
 # stale remote ref reads as stale rather than as "nothing happened".
 #
 # Usage:
-#   bash ~/.agents/huddle/huddle-digest.sh [--days N] [--max-items N] [--no-branches]
+#   bash <huddle>/lib/huddle-digest.sh [--days N] [--max-items N] [--no-branches]
 #
 # Exits 0 with no output when there is nothing to report (not a git repo, no
 # commits in range, git missing). Callers can capture stdout and skip the

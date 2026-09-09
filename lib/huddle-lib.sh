@@ -10,6 +10,20 @@
 # the trusted repository registry. Every hook and service path must resolve the
 # same repository id, canonical checkout, remote, and state root.
 
+# Absolute path to the directory holding these scripts.
+#
+# Notices print runnable commands back to the agent, and those commands have to
+# name a real path. It cannot be hardcoded: the huddle ships as a plugin, and
+# each harness installs it somewhere different — Claude Code copies it into a
+# versioned cache, Antigravity reads it from wherever it was symlinked. Derived
+# from BASH_SOURCE rather than $0 so it stays correct when this file is sourced.
+#
+# The subagent classifier in huddle-whoami.sh is unaffected by what this
+# resolves to: it matches on `basename "$0"`, the filename alone, with any
+# directory prefix allowed.
+# shellcheck disable=SC2034  # consumed by the scripts that source this file
+HUDDLE_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 huddle_registry_file() {
   printf '%s' "${HUDDLE_CONFIG_FILE:-${XDG_CONFIG_HOME:-$HOME/.config}/agents-huddle/repos.json}"
 }

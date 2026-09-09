@@ -1,4 +1,4 @@
-"""Unit tests for the multi-machine helpers in ~/.agents/huddle/huddle-lib.sh.
+"""Unit tests for the multi-machine helpers in <huddle>/lib/huddle-lib.sh.
 
 Covers huddle_sync (throttled, per-machine Dolt push+pull), huddle_discover_root
 (fork-proof root discovery), and huddle_reconcile_today (cross-machine duplicate

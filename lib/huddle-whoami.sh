@@ -175,13 +175,13 @@ discover_session_id() {
 # falls back to the harness-agnostic rebind guard in `register`.
 
 # The literal that must appear in the caller's recorded command. Every
-# documented invocation is `bash ~/.agents/huddle/huddle-whoami.sh …` typed by the
+# documented invocation is `bash <huddle>/lib/huddle-whoami.sh …` typed by the
 # agent, so the script's filename is in the command string verbatim.
 WHOAMI_SIGNATURE=$(basename "$0")
 
 # Regex for a command that RUNS this script, as opposed to one that merely
 # names it. `contains($sig)` is not enough: `rg -n discover
-# ~/.agents/huddle/huddle-whoami.sh` contains the signature and is a Bash tool_use,
+# <huddle>/lib/huddle-whoami.sh` contains the signature and is a Bash tool_use,
 # but reading the file is not invoking it — and an agent researching this guard
 # does exactly that. Both misreadings are live: a subagent that greps the file
 # makes its parent look like a subagent, and a parent that cats it makes a real
@@ -197,7 +197,7 @@ WHOAMI_SIGNATURE=$(basename "$0")
 # without `\n` here, a multi-line command matched nothing at all, and 17.5% of
 # real Bash tool_use commands in this project's transcripts are multi-line
 # (117 of 669 across the 8 newest). A subagent running the ordinary
-# `cd "$REPO"\nbash ~/.agents/huddle/huddle-whoami.sh register …` was classified
+# `cd "$REPO"\nbash <huddle>/lib/huddle-whoami.sh register …` was classified
 # top-level and could clobber the parent's mapping — the PP-788v path. Every
 # INVOCATIONS test case was single-line, so the suite stayed green through it.
 #
@@ -421,7 +421,7 @@ case "$cmd" in
       printf 'Usage: huddle-whoami.sh register [--force] NAME SESSION_ID\n' >&2
       printf 'SESSION_ID is required — the heuristic is unreliable when multiple sessions are active.\n' >&2
       printf 'To get the discovered session_id, run:\n' >&2
-      printf '  bash ~/.agents/huddle/huddle-whoami.sh discover\n' >&2
+      printf '  bash %s/huddle-whoami.sh discover\n' "$HUDDLE_LIB_DIR" >&2
       exit 1
     fi
     # Reject duplicate names: if any OTHER session_id already owns this name,
@@ -449,7 +449,7 @@ case "$cmd" in
       printf 'If you were handed this session_id by another agent, it is almost\n' >&2
       printf 'certainly NOT yours — do not register; sign your huddle posts instead.\n\n' >&2
       printf 'If this really is your own session and you mean to rename it:\n' >&2
-      printf '  bash ~/.agents/huddle/huddle-whoami.sh register --force %s %s\n' "$name" "$sid" >&2
+      printf '  bash %s/huddle-whoami.sh register --force %s %s\n' "$HUDDLE_LIB_DIR" "$name" "$sid" >&2
       exit 1
     fi
     tmp=$(mktemp "${NAMES_JSON}.tmp.XXXXXX")

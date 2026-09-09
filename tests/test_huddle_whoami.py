@@ -1,4 +1,4 @@
-"""Unit tests for ~/.agents/huddle/huddle-whoami.sh.
+"""Unit tests for <huddle>/lib/huddle-whoami.sh.
 
 Regression guard for PP-788v: `register` wrote `. + {($sid): $name}`
 unconditionally, so a session_id that already held a name was silently rebound
@@ -38,6 +38,7 @@ Each test builds a throwaway git repo so `huddle_state_dir` resolves to
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -704,8 +705,10 @@ def test_missing_session_id_still_shows_usage(repo: Path) -> None:
     assert names(repo) == {}
     # The discover hint puts the command on its own line rather than running it
     # together with prose, which is what the stray double space was papering over.
+    # The directory resolves at runtime — the huddle ships as a plugin and each
+    # harness installs it somewhere different — so assert the shape, not a path.
     assert "To get the discovered session_id, run:" in err
-    assert "\n  bash ~/.agents/huddle/huddle-whoami.sh discover\n" in err
+    assert re.search(r"\n  bash \S+/huddle-whoami\.sh discover\n", err), err
     assert "discover  to get" not in err
 
 

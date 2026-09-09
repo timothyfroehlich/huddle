@@ -1,4 +1,4 @@
-"""Unit tests for ~/.agents/huddle/huddle-digest.sh (PP-llkj).
+"""Unit tests for <huddle>/lib/huddle-digest.sh (PP-llkj).
 
 The digest answers "what kind of work is this project doing right now" at
 session start, including after compaction. It is deliberately derived from the

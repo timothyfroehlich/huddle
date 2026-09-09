@@ -49,7 +49,7 @@
 # unprefixed registrations.
 #
 # To register a session→name mapping:
-#   bash ~/.agents/huddle/huddle-whoami.sh register <Name> <session_id>
+#   bash <huddle>/lib/huddle-whoami.sh register <Name> <session_id>
 #
 # Backward compat: also accepts the $CLAUDE_AGENT_NAME env var (the original
 # activation scheme); harnesses other than Claude Code should pass session_id
@@ -209,7 +209,7 @@ except Exception:
   fi
 fi
 if [[ "$NOTES_OK" == false ]]; then
-  printf 'huddle-poll: root notes JSON is null or malformed on %s. Run bash ~/.agents/huddle/huddle-bootstrap.sh to recover. Polling skipped this turn.\n' "$ROOT_ID" >&2
+  printf 'huddle-poll: root notes JSON is null or malformed on %s. Run bash %s/huddle-bootstrap.sh to recover. Polling skipped this turn.\n' "$ROOT_ID" "$HUDDLE_LIB_DIR" >&2
   exit 0
 fi
 

@@ -1,4 +1,4 @@
-"""Unit tests for the pre-rotation verified pull in ~/.agents/huddle/huddle-rotate.sh.
+"""Unit tests for the pre-rotation verified pull in <huddle>/lib/huddle-rotate.sh.
 
 Regression guard for PP-1d51: on 2026-07-07 the Mac ran a huddle rotation while
 its local beads Dolt had diverged from the remote. The pre-rotation pull failed on
