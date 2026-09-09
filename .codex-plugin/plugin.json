@@ -1,6 +1,6 @@
 {
   "name": "huddle",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Inter-session coordination channel: agent sessions announce work, read each other's updates, and avoid colliding on the same repository.",
   "author": {
     "name": "Tim Froehlich"

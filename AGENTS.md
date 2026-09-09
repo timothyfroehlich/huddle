@@ -14,6 +14,22 @@ ruff check .
 
 CI runs the same three.
 
+## Bump the version, or your change will not ship
+
+Claude Code copies the plugin into `~/.claude/plugins/cache/huddle/huddle/<version>/`
+and keys the cache on the version string. `claude plugin update huddle@huddle`
+compares versions and no-ops when they match, so editing a file here and running
+update leaves the old copy installed and running — silently.
+
+Every change that should reach a running session bumps the version in all four
+places: `plugin.json`, `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`,
+and `.codex-plugin/plugin.json`. `claude plugin tag` checks that the manifest and
+the marketplace entry agree.
+
+Antigravity reads the symlinked working tree directly, so it needs no bump — which
+makes it the fastest place to test a change, and an easy way to be fooled into
+thinking Claude Code picked one up.
+
 ## Rules that are easy to break by accident
 
 **Never change a hook command string in a manifest.** `.codex-plugin/plugin.json`,
