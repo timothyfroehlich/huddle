@@ -61,3 +61,20 @@ the existing defaults.
 `lib/` holds the implementation. `bin/huddle-hook` is the only thing hooks name.
 `skills/huddle/SKILL.md` is shared verbatim by all three harnesses and is the
 place for conventions rather than mechanics.
+
+## Issue tracking
+
+Work on the huddle is tracked in this repository's own beads project, prefix
+`HDDL`. It is an embedded Dolt database under `.beads/`, gitignored, with its
+history pushed to `refs/dolt/data` on this repository's git origin — so the data
+travels with the repo without ever appearing as tracked files.
+
+**The `HDDL` project is not the huddle channel.** The channel — the coordination
+posts that sessions read and write at runtime — lives in whatever beads project
+the repository being worked on uses, which today is PinPoint's `PP`. A session
+coordinating work in PinPoint posts to `PP`; a session fixing a bug in the huddle
+files it as `HDDL`. Nothing here routes channel traffic to `HDDL`, and nothing
+should.
+
+Re-running `bd init` here re-adds a Claude/Codex/skill scaffold this repository
+deliberately does not carry, and re-commits `.beads/`. Don't.
