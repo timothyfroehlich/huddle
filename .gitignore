@@ -4,6 +4,8 @@ __pycache__/
 .ruff_cache/
 .scratch/
 .DS_Store
+node_modules/
+pnpm-debug.log*
 
 # Beads. The embedded Dolt database and its config are machine-local; issue
 # history reaches origin through refs/dolt/data, not through tracked files.
