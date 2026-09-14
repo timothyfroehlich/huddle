@@ -86,13 +86,17 @@ code — install only what you have read.
 
 ## Development
 
+Install the development dependency once per clone; the `prepare` script enables
+the repository's Husky hooks:
+
 ```bash
-pytest tests/ -q
-shellcheck lib/*.sh bin/huddle-hook
-ruff check .
+pnpm install
+pnpm run lint
+pnpm run test
 ```
 
-CI runs the same three gates on every pull request and `main` push.
+The pre-commit hook runs the lint gate. CI runs the same lint and test gates
+on every pull request and `main` push.
 
 ## License
 

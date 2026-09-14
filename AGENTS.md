@@ -4,15 +4,15 @@ Read [README.md](README.md) first for what this is and how it is laid out.
 
 ## Gates
 
-All three must pass before committing:
+Install the development dependency once per clone with `pnpm install`. Both
+gates must pass before committing:
 
 ```bash
-pytest tests/ -q
-shellcheck lib/*.sh bin/huddle-hook
-ruff check .
+pnpm run lint
+pnpm run test
 ```
 
-CI runs the same three.
+The Husky pre-commit hook runs the lint gate. CI runs both gates.
 
 ## Bump the version, or your change will not ship
 
