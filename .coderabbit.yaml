@@ -1,0 +1,45 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: en-US
+
+tone_instructions: |
+  Be direct and technical. No preamble, no praise, no summary of what the code
+  does. State the problem, cite the rule/doc, propose the fix.
+
+reviews:
+  request_changes_workflow: true
+  review_details: true
+  suggested_reviewers: false
+  profile: chill
+  high_level_summary: true
+  high_level_summary_in_walkthrough: true
+  collapse_walkthrough: true
+  review_status: true
+  poem: false
+
+  auto_review:
+    enabled: true
+    drafts: false
+    auto_incremental_review: false
+    auto_pause_after_reviewed_commits: 1
+
+  path_instructions:
+    - path: "**"
+      instructions: |
+        Read `/AGENTS.md` before reviewing.
+
+        Version Sync: Every change that should reach running sessions MUST bump
+        the version string across all four manifests (`plugin.json`,
+        `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, and
+        `.codex-plugin/plugin.json`). Note: adding repo config like .coderabbit.yaml
+        that does not alter plugin runtime behavior does not require a plugin version bump.
+
+        Coordination State Integrity: Preserve backwards compatibility and atomicity
+        for cross-agent JSON state files (`state.json`, `digest.json`, identity
+        registration, and em-dash signatures).
+
+        Hook Robustness: Lifecycle hooks must never throw unhandled exceptions
+        that crash or hang host agents.
+
+knowledge_base:
+  learnings:
+    scope: auto
