@@ -428,3 +428,18 @@ def test_reconcile_noop_when_single_daily(repo: Path) -> None:
     assert "close" not in log
     assert "update" not in log
     assert "dolt push" not in log
+
+
+def test_reconcile_prefetched_args_skips_bd_reads(repo: Path) -> None:
+    root_json = _root_show("PP-lt12.40")
+    children_json = json.dumps(
+        [{"id": "PP-lt12.40", "title": f"Huddle daily {TODAY}", "status": "open"}]
+    )
+    rc, _out, _err, log = run_fn(
+        repo,
+        f"huddle_reconcile_today PP-lt12 '{root_json}' '{children_json}'",
+    )
+    assert rc == 0
+    assert "show PP-lt12" not in log
+    assert "children PP-lt12" not in log
+

@@ -523,13 +523,17 @@ huddle_discover_root() {
   printf '%s' "$id"
 }
 
-# huddle_reconcile_today — safety-net dedup for the rare cross-machine rotation
+# huddle_reconcile_today [root_id] [root_json] [children_json] — safety-net dedup for the rare cross-machine rotation
 # race. If two machines both created a "Huddle daily <date>" for the current
 # today_bead date before either pushed, this collapses them to a deterministic
 # canonical (lowest id), re-points root notes at it, and closes the loser(s) with
 # a merge marker. Idempotent no-op when there is 0 or 1 daily (the common case →
 # two cheap local reads, no writes). Every machine picks the same canonical, so
 # all converge. Fail-open; silent (no stdout). Returns 0 always.
+#
+# Optional pre-fetched args (hot-path budget): when the caller already holds the
+# root id, root JSON, or children JSON — huddle-session-start.sh does — pass them
+# so this function skips redundant `bd show` and `bd children` calls.
 #
 # No explicit `bd dolt push` here — in server mode writes hit the shared DB
 # directly, and in embedded mode the next huddle_sync / pre-push flush carries
@@ -540,20 +544,29 @@ huddle_discover_root() {
 huddle_reconcile_today() {
   command -v bd >/dev/null 2>&1 || return 0
   command -v jq >/dev/null 2>&1 || return 0
-  local state_dir config_file root_id root_json notes_str today dailies count canon cur_today_id new_notes d
-  state_dir=$(huddle_state_dir) || return 0
-  config_file="$state_dir/config.json"
-  [[ -f "$config_file" ]] || return 0
-  root_id=$(jq -r '.root_bead_id // ""' "$config_file" 2>/dev/null) || return 0
-  [[ -n "$root_id" ]] || return 0
-  root_json=$(bd show "$root_id" --json 2>/dev/null) || return 0
+  local root_id="${1:-}" root_json="${2:-}" children_json="${3:-}"
+  local state_dir config_file notes_str today dailies count canon cur_today_id new_notes d
+  if [[ -z "$root_id" ]]; then
+    state_dir=$(huddle_state_dir) || return 0
+    config_file="$state_dir/config.json"
+    [[ -f "$config_file" ]] || return 0
+    root_id=$(jq -r '.root_bead_id // ""' "$config_file" 2>/dev/null) || return 0
+    [[ -n "$root_id" ]] || return 0
+  fi
+  if [[ -z "$root_json" ]]; then
+    root_json=$(bd show "$root_id" --json 2>/dev/null) || return 0
+  fi
   notes_str=$(printf '%s' "$root_json" | jq -r '.[0].notes // ""' 2>/dev/null) || return 0
   [[ -n "$notes_str" ]] || return 0
   today=$(printf '%s' "$notes_str" | jq -r '.today_bead.date // ""' 2>/dev/null) || return 0
   [[ -n "$today" ]] || return 0
 
+  if [[ -z "$children_json" ]]; then
+    children_json=$(bd children "$root_id" --json 2>/dev/null) || return 0
+  fi
+
   # All open dailies for today's date, sorted by id (ascending → canonical first).
-  dailies=$(bd children "$root_id" --json 2>/dev/null \
+  dailies=$(printf '%s' "$children_json" \
     | jq -r --arg t "Huddle daily $today" \
       '[ .[] | select(.title==$t and .status!="closed") ] | sort_by(.id) | .[].id' 2>/dev/null) || return 0
   count=$(printf '%s\n' "$dailies" | grep -c . 2>/dev/null || true)

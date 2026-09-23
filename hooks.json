@@ -4,7 +4,7 @@
       {
         "type": "command",
         "command": "node ./lib/huddle-antigravity-adapter.cjs before-agent",
-        "timeout": 10
+        "timeout": 20
       }
     ],
     "PostToolUse": [
