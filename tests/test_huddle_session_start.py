@@ -695,3 +695,59 @@ def test_codex_registration_block_omits_rename_guidance(repo: Path) -> None:
     assert "/rename" not in out
     assert "SESSION-RENAME COMMAND" not in out
     assert "**Put the command alone on its own line**" not in out
+
+
+def test_children_with_descriptions_skips_per_daily_bd_show(repo: Path) -> None:
+    """When children.json includes descriptions (real bd children), avoid per-daily bd show."""
+    _write_json(
+        repo / "children.json",
+        [
+            {
+                "id": TODAY_DAILY_ID,
+                "title": f"Huddle daily {TODAY}",
+                "description": "Fast path today description.",
+                "status": "open",
+            }
+        ],
+    )
+    # Remove the mock individual show file so bd show would fail if called
+    (repo / "shows" / f"{TODAY_DAILY_ID}.json").unlink()
+
+    rc, out, err = run_hook(repo)
+    assert rc == 0, err
+    assert "Fast path today description." in out
+    bd_log = (repo / "bd.log").read_text()
+    assert f"show {TODAY_DAILY_ID}" not in bd_log
+
+
+def test_children_with_empty_description_skips_per_daily_bd_show(repo: Path) -> None:
+    """An empty description on a daily is valid and must not trigger fallback bd show."""
+    _write_json(
+        repo / "children.json",
+        [
+            {
+                "id": TODAY_DAILY_ID,
+                "title": f"Huddle daily {TODAY}",
+                "description": "",
+                "status": "open",
+            }
+        ],
+    )
+    # Remove individual show file: if fallback fires, bd show fails
+    (repo / "shows" / f"{TODAY_DAILY_ID}.json").unlink()
+
+    rc, out, err = run_hook(repo)
+    assert rc == 0, err
+    bd_log = (repo / "bd.log").read_text()
+    assert f"show {TODAY_DAILY_ID}" not in bd_log
+
+
+def test_missing_root_bead_emits_warning_notice(repo: Path) -> None:
+    """When the root bead does not exist, emit the missing root bead warning notice."""
+    # Remove the mock root show file so bd show fails
+    (repo / "shows" / f"{ROOT_ID}.json").unlink()
+
+    rc, out, err = run_hook(repo)
+    assert rc == 0, err
+    assert "## ⚠️ Huddle root bead missing" in out
+    assert "config.json points at" in out

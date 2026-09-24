@@ -171,7 +171,8 @@ fi
 # so the user knows to re-bootstrap. `bd show` exits non-zero for missing IDs.
 # In server mode a failure here may just mean the shared server is unreachable —
 # emit the throttled "degraded" signal so it isn't mistaken for a missing bead.
-if ! bd show "$ROOT_ID" --json >/dev/null 2>&1; then
+ROOT_JSON=$(bd show "$ROOT_ID" --json 2>/dev/null) || ROOT_JSON=""
+if [[ -z "$ROOT_JSON" || "$ROOT_JSON" == "[]" ]]; then
   huddle_warn_degraded
   printf '## ⚠️ Huddle root bead missing\n\n'
   # shellcheck disable=SC2016  # backticks are literal Markdown, not command substitution
@@ -222,10 +223,10 @@ ROTATION_CHECK_SCRIPT="$(dirname "$0")/huddle-rotation-check.sh"
 if [[ -f "$ROTATION_CHECK_SCRIPT" ]]; then
   # shellcheck source=huddle-rotation-check.sh disable=SC1091
   source "$ROTATION_CHECK_SCRIPT"
-  if huddle_rotation_needed; then
+  if huddle_rotation_needed "$ROOT_JSON"; then
     ROTATION_PENDING=1
     STORED_DATE=""
-    NOTES_STR_ROT=$(bd show "$ROOT_ID" --json 2>/dev/null | jq -r '.[0].notes // ""' 2>/dev/null || echo "")
+    NOTES_STR_ROT=$(printf '%s' "$ROOT_JSON" | jq -r '.[0].notes // ""' 2>/dev/null || echo "")
     if [[ -n "$NOTES_STR_ROT" ]]; then
       STORED_DATE=$(printf '%s' "$NOTES_STR_ROT" | python3 -c "
 import sys, json
@@ -265,8 +266,10 @@ fi
 # gap is pre-existing (this call was unreachable on the rotation-pending path
 # before PP-2m3l too) and out of scope here — do NOT read the skip as "the next
 # session start will catch it".
+CHILDREN_JSON=""
 if [[ -z "$ROTATION_PENDING" ]]; then
-  huddle_reconcile_today || true
+  CHILDREN_JSON=$(bd children "$ROOT_ID" --json 2>/dev/null) || CHILDREN_JSON="[]"
+  huddle_reconcile_today "$ROOT_ID" "$ROOT_JSON" "$CHILDREN_JSON" || true
 fi
 
 SESSION_ID=""
@@ -328,7 +331,7 @@ fi
 # what a compacted session actually lost is its own name, the bead id, and the
 # project's recent shape.
 if [[ "$SOURCE" == "compact" ]]; then
-  _TODAY_ID_COMPACT=$(huddle_today_bead_id 2>/dev/null) || _TODAY_ID_COMPACT="<today-bead-id>"
+  _TODAY_ID_COMPACT=$(huddle_today_bead_id "$ROOT_ID" "$ROOT_JSON" 2>/dev/null) || _TODAY_ID_COMPACT="<today-bead-id>"
   [[ -n "$_TODAY_ID_COMPACT" ]] || _TODAY_ID_COMPACT="<today-bead-id>"
   printf '## Huddle identity (post-compaction)\n\n'
   if [[ -n "$NAME" ]]; then
@@ -362,7 +365,7 @@ if [[ -n "$NAME" ]]; then
   printf 'If this scrolls out of context later, recall your name with:\n'
   printf '    bash %s/huddle-whoami.sh whoami %s\n\n' "$HUDDLE_LIB_DIR" "$SESSION_ID"
   # Resolve today_bead_id for the copy-paste command (fail-open: fall back to placeholder)
-  _TODAY_ID_REG=$(huddle_today_bead_id 2>/dev/null) || _TODAY_ID_REG="<today-bead-id>"
+  _TODAY_ID_REG=$(huddle_today_bead_id "$ROOT_ID" "$ROOT_JSON" 2>/dev/null) || _TODAY_ID_REG="<today-bead-id>"
   [[ -n "$_TODAY_ID_REG" ]] || _TODAY_ID_REG="<today-bead-id>"
   # With rotation pending, today's daily does not exist yet, so the resolver
   # always misses and every command below renders the literal placeholder. Say so
@@ -474,7 +477,6 @@ emit_work_digest
 # --- Summary injection (§5.1 step 5) ---
 # Inject monthly summary description + N most-recent daily bead descriptions.
 # Fails open: any bd error exits silently without noise.
-ROOT_JSON=$(bd show "$ROOT_ID" --json 2>/dev/null) || { exit 0; }
 NOTES_STR=$(printf '%s' "$ROOT_JSON" | jq -r '.[0].notes // ""' 2>/dev/null) || { exit 0; }
 if [[ -z "$NOTES_STR" ]]; then
   exit 0
@@ -511,12 +513,20 @@ except Exception:
     print('')
 " 2>/dev/null || echo "")
 
-# Recent dailies: query the live children by title (id + date parsed from the
-# "Huddle daily <date>" title), newest first — NOT a cached notes array. The old
-# recent_dailies cache was the source of the PP-9lq5 dangling pointers; reading
-# the DB directly means a purged/renamed daily simply drops out instead of
-# lingering as a broken reference.
-RECENT_DAILIES=$(bd children "$ROOT_ID" --json 2>/dev/null | python3 -c "
+# Ensure CHILDREN_JSON is available (if skipped above due to rotation pending)
+if [[ -z "$CHILDREN_JSON" ]]; then
+  CHILDREN_JSON=$(bd children "$ROOT_ID" --json 2>/dev/null) || CHILDREN_JSON="[]"
+fi
+
+# Recent dailies: query live children by title (id + date parsed from the
+# "Huddle daily <date>" title), newest first — NOT a cached notes array.
+# Fast path: if children payload includes descriptions (standard bd children),
+# format them in Python directly — avoiding N extra bd show roundtrips.
+RECENT_DAILIES_BLOCK=""
+RECENT_DAILIES_IDS=""
+if [[ -n "$CHILDREN_JSON" && "$CHILDREN_JSON" != "[]" ]]; then
+  PY_EXIT=0
+  RECENT_DAILIES_OUTPUT=$(printf '%s' "$CHILDREN_JSON" | python3 -c "
 import sys, json, re
 try:
     children = json.load(sys.stdin)
@@ -529,30 +539,54 @@ for c in children:
         continue
     cid = c.get('id', '')
     if cid:
-        rows.append((m.group(1), cid))
-rows.sort(reverse=True)  # newest date first
-for date, cid in rows:
-    print(cid + '\t' + date)
-" 2>/dev/null || echo "")
+        rows.append((m.group(1), cid, c))
+rows.sort(key=lambda r: r[0], reverse=True)
+n_dailies = int(sys.argv[1]) if len(sys.argv) > 1 and sys.argv[1].isdigit() else 2
+selected = rows[:n_dailies]
 
-# Gather content — only emit the section header if there's something to show
-MONTHLY_DESC=""
-if [[ -n "$MONTHLY_BEAD_ID" ]]; then
-  MONTHLY_DESC=$(bd show "$MONTHLY_BEAD_ID" --json 2>/dev/null | jq -r '.[0].description // ""' 2>/dev/null || echo "")
+has_desc_field = all('description' in c for _, _, c in selected) if selected else True
+if has_desc_field:
+    for date, cid, c in selected:
+        desc = (c.get('description') or '').strip()
+        if desc and desc != 'null':
+            print(f'### Daily {date} ({cid})\n\n{desc}\n')
+else:
+    for date, cid, _ in selected:
+        print(f'{cid}\t{date}')
+    sys.exit(2)
+" "$N_DAILIES" 2>/dev/null) || PY_EXIT=$?
+
+  if [[ "$PY_EXIT" -eq 2 ]]; then
+    RECENT_DAILIES_IDS="$RECENT_DAILIES_OUTPUT"
+  elif [[ "$PY_EXIT" -eq 0 ]]; then
+    RECENT_DAILIES_BLOCK="$RECENT_DAILIES_OUTPUT"
+  fi
 fi
 
-if [[ -z "$MONTHLY_DESC" && -z "$RECENT_DAILIES" ]]; then
+# Gather content — single bd show for monthly bead (both title and description)
+MONTHLY_DESC=""
+MONTHLY_TITLE="Monthly summary"
+if [[ -n "$MONTHLY_BEAD_ID" ]]; then
+  MONTHLY_JSON=$(bd show "$MONTHLY_BEAD_ID" --json 2>/dev/null) || MONTHLY_JSON=""
+  if [[ -n "$MONTHLY_JSON" && "$MONTHLY_JSON" != "[]" ]]; then
+    MONTHLY_DESC=$(printf '%s' "$MONTHLY_JSON" | jq -r '.[0].description // ""' 2>/dev/null || echo "")
+    MONTHLY_TITLE=$(printf '%s' "$MONTHLY_JSON" | jq -r '.[0].title // "Monthly summary"' 2>/dev/null || echo "Monthly summary")
+  fi
+fi
+
+if [[ -z "$MONTHLY_DESC" && -z "$RECENT_DAILIES_BLOCK" && -z "$RECENT_DAILIES_IDS" ]]; then
   exit 0
 fi
 
 printf '\n## Huddle recent activity\n\n'
 
 if [[ -n "$MONTHLY_BEAD_ID" && -n "$MONTHLY_DESC" && "$MONTHLY_DESC" != "null" ]]; then
-  MONTHLY_TITLE=$(bd show "$MONTHLY_BEAD_ID" --json 2>/dev/null | jq -r '.[0].title // "Monthly summary"' 2>/dev/null || echo "Monthly summary")
   printf '### %s\n\n%s\n\n' "$MONTHLY_TITLE" "$MONTHLY_DESC"
 fi
 
-if [[ -n "$RECENT_DAILIES" ]]; then
+if [[ -n "$RECENT_DAILIES_BLOCK" ]]; then
+  printf '%s' "$RECENT_DAILIES_BLOCK"
+elif [[ -n "$RECENT_DAILIES_IDS" ]]; then
   DAILY_COUNT=0
   while IFS=$'\t' read -r daily_id daily_date; do
     [[ -z "$daily_id" ]] && continue
@@ -562,7 +596,7 @@ if [[ -n "$RECENT_DAILIES" ]]; then
       printf '### Daily %s (%s)\n\n%s\n\n' "$daily_date" "$daily_id" "$DAILY_DESC"
     fi
     DAILY_COUNT=$(( DAILY_COUNT + 1 ))
-  done <<< "$RECENT_DAILIES"
+  done <<< "$RECENT_DAILIES_IDS"
 fi
 
 exit 0
