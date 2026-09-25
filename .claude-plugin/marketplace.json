@@ -8,7 +8,7 @@
     {
       "name": "huddle",
       "description": "Inter-session coordination channel for agent sessions",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "source": "./",
       "author": {
         "name": "Tim Froehlich"

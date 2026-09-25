@@ -154,6 +154,12 @@ huddle_service_run_repo() {
     fi
   fi
 
+  # Push local huddle posts and pull other machines' posts. Runs here rather
+  # than in hooks so the network wait never counts against a hook timeout.
+  # Before announcements, so the dedup check sees posts from other machines.
+  # Fail-open and throttled by huddle_sync itself.
+  (cd "$checkout" && HUDDLE_CWD="$checkout" huddle_sync) || true
+
   HUDDLE_ANNOUNCEMENT_OUTCOME="updater"
   if [[ "$role" == leader ]]; then
     if ! huddle_service_post_merges "$checkout" "$state_dir" "$remote_head"; then

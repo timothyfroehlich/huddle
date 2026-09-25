@@ -160,12 +160,9 @@ except Exception:
   ) || SESSION_ID=""
 fi
 
-# --- Per-machine Dolt sync (throttled, fail-open) ---
-# Push local coordination posts and pull peer machines' updates before reading
-# root notes, so this session sees the freshest cross-machine state. Throttled
-# per-machine (shared marker in STATE_DIR) so many concurrent sessions trigger
-# at most one sync per interval. Never blocks the prompt — fully fail-open.
-huddle_sync
+# No Dolt sync here. The push+pull takes several seconds on a healthy network
+# and holds the embedded Dolt lock while it runs, which pushed this hook past
+# its 10s budget. huddle-service.sh runs huddle_sync every minute instead.
 
 # --- Bootstrap check ---
 # If config.json is missing, the system hasn't been bootstrapped yet.

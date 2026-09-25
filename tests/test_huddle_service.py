@@ -131,6 +131,7 @@ def service_world(tmp_path: Path) -> dict[str, Path | dict[str, str]]:
         '      PP-today) printf \'[{"id":"PP-today","title":"Huddle daily %s","status":"open"}]\\n\' "$today" ;;\n'
         "    esac ;;\n"
         "  children) printf '[]\\n' ;;\n"
+        '  dolt) printf \'%s\\n\' "$*" >> "$BD_SYNC_CALLS" ;;\n'
         "  comments)\n"
         '    if [[ "${2:-}" == add ]]; then\n'
         '      [[ "${BD_FAIL_POST:-0}" == 1 ]] && exit 1\n'
@@ -150,6 +151,7 @@ def service_world(tmp_path: Path) -> dict[str, Path | dict[str, str]]:
         "TEST_ORIGIN": str(origin),
         "EXPECTED_BD_CWD": str(root),
         "BD_CALLS": str(calls),
+        "BD_SYNC_CALLS": str(tmp_path / "bd-sync-calls"),
         "BD_COMMENTS": str(comments),
         "HUDDLE_CONFIG_FILE": str(config),
         "HUDDLE_AGENT_STATE_ROOT": str(agent_state),
@@ -162,6 +164,7 @@ def service_world(tmp_path: Path) -> dict[str, Path | dict[str, str]]:
         "seed": seed,
         "state": state,
         "calls": calls,
+        "sync_calls": tmp_path / "bd-sync-calls",
         "comments": comments,
         "env": env,
         "first": Path(first),
@@ -435,3 +438,43 @@ def test_status_rejects_invalid_current_registry(
 
     assert result.returncode != 0
     assert "registry: invalid current configuration" in result.stdout
+
+
+def _set_dolt_mode(world: dict[str, Path | dict[str, str]], mode: str) -> None:
+    (Path(world["root"]) / ".beads" / "metadata.json").write_text(
+        json.dumps({"database": "dolt", "backend": "dolt", "dolt_mode": mode})
+    )
+
+
+@pytest.mark.parametrize("role", ["leader", "updater"])
+def test_service_pushes_then_pulls_the_dolt_remote_in_embedded_mode(
+    service_world: dict[str, Path | dict[str, str]], role: str
+) -> None:
+    _set_dolt_mode(service_world, "embedded")
+
+    result = run_service(service_world, role)
+
+    assert result.returncode == 0, result.stderr
+    calls = Path(service_world["sync_calls"]).read_text().splitlines()
+    assert calls == ["dolt push --quiet", "dolt pull --quiet"]
+
+
+def test_service_sync_is_throttled_across_runs(
+    service_world: dict[str, Path | dict[str, str]],
+) -> None:
+    _set_dolt_mode(service_world, "embedded")
+
+    assert run_service(service_world, "leader").returncode == 0
+    assert run_service(service_world, "leader").returncode == 0
+
+    calls = Path(service_world["sync_calls"]).read_text().splitlines()
+    assert calls == ["dolt push --quiet", "dolt pull --quiet"]
+
+
+def test_service_skips_dolt_sync_in_server_mode(
+    service_world: dict[str, Path | dict[str, str]],
+) -> None:
+    result = run_service(service_world, "leader")
+
+    assert result.returncode == 0, result.stderr
+    assert not Path(service_world["sync_calls"]).exists()

@@ -387,28 +387,28 @@ huddle_today_bead_id() {
 
 # huddle_sync — throttled, per-machine Dolt push+pull to keep the huddle beads
 # fresh across the user's machines. Fail-open: any error (offline,
-# no remote, bd missing, lock held) returns 0 silently and never stalls a hook
-# for more than the bounded network timeout.
+# no remote, bd missing, lock held) returns 0 silently.
 #
-# Bounded blocking: the push/pull are synchronous, so the one session that wins
-# the lock does wait on the network — but each call is wrapped in `timeout`
-# (GNU `timeout`, or `gtimeout` from coreutils on macOS) capped at
-# $HUDDLE_SYNC_TIMEOUT seconds (default 15). A hung remote is killed at the cap
-# instead of stalling the prompt indefinitely. If neither timeout binary exists
-# the calls run unwrapped (bd/dolt still apply their own network deadlines).
+# Caller: huddle-service.sh, once per registered repository per run. Hooks must
+# not call this. A push+pull takes several seconds on a healthy network, and
+# while it runs every other session's `bd` read waits on the embedded Dolt lock,
+# so calling it from a hook blew through the 10s hook timeout.
+#
+# Bounded blocking: each call is wrapped in `timeout` (GNU `timeout`, or
+# `gtimeout` from coreutils on macOS) capped at $HUDDLE_SYNC_TIMEOUT seconds
+# (default 15). If neither timeout binary exists the calls run unwrapped
+# (bd/dolt still apply their own network deadlines).
 #
 # Per-machine throttle: the marker lives in the shared XDG agent-state directory
-# (`agent/<repo-id>/last-pull`), which every worktree/session of this clone
-# resolves to identically via huddle_state_dir — so one sync per
-# interval serves ALL sessions on the machine, not one-per-session. A
-# non-blocking lock ensures exactly one session syncs when many fire at once;
-# the rest skip and simply read the freshly-pulled local Dolt DB.
+# (`agent/<repo-id>/last-pull`), which every worktree of this clone resolves to
+# identically via huddle_state_dir. A non-blocking lock ensures exactly one
+# caller syncs at a time; the rest skip.
 #
 # Interval: $HUDDLE_SYNC_SECONDS (default 180 — matches the poll throttle).
 # Push-before-pull: local coordination posts propagate first, then peers ingest.
 # The marker is written INSIDE the lock BEFORE the network calls (same backoff
 # discipline as huddle-poll.sh's poll throttle) so a broken remote can't cause a
-# hammer loop across sessions.
+# hammer loop.
 #
 # Server mode: `huddle_sync` is a no-op. There is no local embedded Dolt to
 # push or pull — every session reads and writes the one shared `dolt sql-server`
