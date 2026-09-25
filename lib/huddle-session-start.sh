@@ -124,11 +124,8 @@ huddle_camelize() {
   ' 2>/dev/null || printf ''
 }
 
-# --- Per-machine Dolt sync (throttled, fail-open) ---
-# Pull peer machines' huddle updates (and push ours) before reading root notes,
-# so this session opens with the freshest cross-machine state. Throttled
-# per-machine; never blocks session start.
-huddle_sync
+# No Dolt sync here: huddle-service.sh runs huddle_sync every minute, which
+# keeps this hook inside its timeout. See the note in huddle-poll.sh.
 
 # --- Bootstrap check ---
 # If config.json is missing, emit the user-visible bootstrap notice and exit.
@@ -251,7 +248,7 @@ except Exception:
 fi
 
 # --- Cross-machine dedup safety-net (once per session, up-to-date path only) ---
-# huddle_sync above already pulled, so the local DB is fresh. If the rare
+# The service's huddle_sync keeps the local DB fresh. If the rare
 # midnight race left two open dailies for today (two machines rotated before
 # either pushed), collapse them to the canonical here. No-op in the common case
 # (two cheap local reads); silent + fail-open.

@@ -308,10 +308,11 @@ by rotation, so signing that text does not make it a Huddle post.
 - **PR opened** (`~/Code/huddle/lib/huddle-pr-announce.sh` PostToolUse hook): when you call `gh pr create` (Bash) or `mcp__github__create_pull_request`, the hook auto-posts "Opened PR #N (PP-xxx): title." Dedup-safe — re-fires are ignored.
 
 A launchd job runs the service every minute in the `leader` role: it fetches,
-may fast-forward a clean canonical checkout on its configured main branch, and
-is the only writer of merge announcements. The lesser `updater` role fetches but
+may fast-forward a clean canonical checkout on its configured main branch,
+pushes and pulls the beads Dolt remote (at most every 180s), and is the only
+writer of merge announcements. The lesser `updater` role fetches but
 never announces, and exists for a second machine that should not duplicate the
-announcements. Hooks never perform Git maintenance. Inspect the service with:
+announcements. Hooks never perform Git maintenance or Dolt sync. Inspect the service with:
 
 ```bash
 bash ~/Code/huddle/lib/huddle-service.sh status

@@ -41,6 +41,7 @@ TODAY = datetime.date.today().isoformat()
 # Stub `bd`: `show <id>` from $BD_SHOW_DIR/<id>.json, `comments <id>` from
 # $BD_COMMENTS_JSON, everything else a silent success.
 BD_STUB = r"""#!/usr/bin/env bash
+[[ -n "${BD_LOG:-}" ]] && printf '%s\n' "$*" >> "$BD_LOG"
 case "$1" in
   show)
     f="${BD_SHOW_DIR:-}/$2.json"
@@ -135,6 +136,7 @@ def run_hook(
     repo: Path,
     session_id: str = SESSION_ID,
     nudge_seconds: str | None = None,
+    extra_env: dict[str, str] | None = None,
 ) -> tuple[int, str, str]:
     env = os.environ.copy()
     env.update(huddle_test_env(repo))
@@ -145,6 +147,8 @@ def run_hook(
     env.pop("CLAUDE_AGENT_NAME", None)
     if nudge_seconds is not None:
         env["HUDDLE_NUDGE_SECONDS"] = nudge_seconds
+    if extra_env:
+        env.update(extra_env)
     payload = json.dumps(
         {
             "session_id": session_id,
@@ -252,3 +256,19 @@ def test_nudge_is_rate_limited_to_one_per_window(repo: Path) -> None:
     # Immediately after, still quiet — but the window has reset.
     _rc, second, _err = run_hook(repo)
     assert NUDGE_MARKER not in second
+
+
+def test_poll_never_syncs_dolt_even_in_embedded_mode(repo: Path) -> None:
+    """The prompt hook has a 10s budget; a Dolt push+pull alone can use most of
+    it. Sync belongs to huddle-service.sh, so the hook must never call it."""
+    (repo / ".beads" / "metadata.json").write_text(
+        json.dumps({"database": "dolt", "backend": "dolt", "dolt_mode": "embedded"})
+    )
+    log = repo / "bd.log"
+
+    rc, _out, _err = run_hook(repo, extra_env={"BD_LOG": str(log)})
+
+    assert rc == 0
+    calls = log.read_text().splitlines()
+    assert calls, "expected the poll to read through bd"
+    assert not [c for c in calls if c.startswith("dolt")]
