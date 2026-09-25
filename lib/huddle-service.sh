@@ -118,6 +118,13 @@ huddle_service_run_repo() {
     fi
   fi
 
+  # Push local huddle posts and pull other machines' posts. Runs here rather
+  # than in hooks so the network wait never counts against a hook timeout.
+  # Before the Git fetch so a GitHub outage doesn't also stop the Dolt sync, and
+  # before announcements so the dedup check sees posts from other machines.
+  # Fail-open and throttled by huddle_sync itself.
+  (cd "$checkout" && HUDDLE_CWD="$checkout" huddle_sync) || true
+
   remote_ref="refs/remotes/origin/$branch"
   if ! git -C "$checkout" fetch --quiet origin "$branch"; then
     rmdir "$lock" 2>/dev/null || true
@@ -153,12 +160,6 @@ huddle_service_run_repo() {
       fi
     fi
   fi
-
-  # Push local huddle posts and pull other machines' posts. Runs here rather
-  # than in hooks so the network wait never counts against a hook timeout.
-  # Before announcements, so the dedup check sees posts from other machines.
-  # Fail-open and throttled by huddle_sync itself.
-  (cd "$checkout" && HUDDLE_CWD="$checkout" huddle_sync) || true
 
   HUDDLE_ANNOUNCEMENT_OUTCOME="updater"
   if [[ "$role" == leader ]]; then

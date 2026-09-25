@@ -97,6 +97,7 @@ def service_world(tmp_path: Path) -> dict[str, Path | dict[str, str]]:
         "#!/usr/bin/env bash\n"
         "set -euo pipefail\n"
         'if [[ "$*" == *" fetch --quiet origin main" ]]; then\n'
+        '  [[ "${FAIL_FETCH:-0}" == 1 ]] && exit 1\n'
         '  checkout="$2"\n'
         '  exec "$REAL_GIT" -C "$checkout" fetch --quiet "$TEST_ORIGIN" '
         + "'+main:refs/remotes/origin/main'\n"
@@ -478,3 +479,15 @@ def test_service_skips_dolt_sync_in_server_mode(
 
     assert result.returncode == 0, result.stderr
     assert not Path(service_world["sync_calls"]).exists()
+
+
+def test_service_syncs_dolt_even_when_git_fetch_fails(
+    service_world: dict[str, Path | dict[str, str]],
+) -> None:
+    _set_dolt_mode(service_world, "embedded")
+
+    result = run_service(service_world, "leader", {"FAIL_FETCH": "1"})
+
+    assert result.returncode != 0
+    calls = Path(service_world["sync_calls"]).read_text().splitlines()
+    assert calls == ["dolt push --quiet", "dolt pull --quiet"]
