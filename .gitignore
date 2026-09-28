@@ -12,4 +12,5 @@ pnpm-debug.log*
 # See AGENTS.md.
 .beads/
 .beads-credential-key
+*.gate.lock*
 *.db
