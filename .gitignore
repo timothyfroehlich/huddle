@@ -12,4 +12,6 @@ pnpm-debug.log*
 # See AGENTS.md.
 .beads/
 .beads-credential-key
+# bd 1.3.0 workspace gate lock lands beside .beads/ at the repo root
+*.gate.lock*
 *.db

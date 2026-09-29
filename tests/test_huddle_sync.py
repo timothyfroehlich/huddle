@@ -10,6 +10,7 @@ canned JSON, then sources the lib and calls the function under test.
 import datetime
 import json
 import os
+import shutil
 import stat
 import subprocess
 import tempfile
@@ -42,6 +43,10 @@ def _set_server_mode(repo: Path) -> None:
 # the JSON in the file named by the matching env var. Everything else exits 0.
 BD_STUB = r"""#!/usr/bin/env bash
 printf '%s\n' "$*" >> "$BD_LOG"
+if [[ -n "${BD_TRAP_TERM:-}" && "$1 $2" == "dolt push" ]]; then
+  trap '' TERM
+  sleep 15
+fi
 case "$1 $2" in
   "dolt push") exit "${BD_PUSH_RC:-0}" ;;
   "dolt pull") exit "${BD_PULL_RC:-0}" ;;
@@ -149,6 +154,29 @@ def test_sync_fail_open_when_push_and_pull_error(repo: Path) -> None:
     assert rc == 0
     assert "dolt push" in log  # it tried
     assert (repo / ".agents" / "huddle" / "last-pull").exists()
+
+
+@pytest.mark.skipif(
+    not (shutil.which("timeout") or shutil.which("gtimeout")),
+    reason="requires timeout or gtimeout binary",
+)
+def test_sync_escalates_to_sigkill_when_term_ignored(repo: Path) -> None:
+    # If bd ignores SIGTERM (stalled syscall / network stream), timeout's -k
+    # escalation must forcefully kill it with SIGKILL rather than hang.
+    import time
+
+    start = time.monotonic()
+    rc, _out, _err, log = run_fn(
+        repo,
+        "huddle_sync",
+        {"BD_TRAP_TERM": "1", "HUDDLE_SYNC_TIMEOUT": "1"},
+    )
+    elapsed = time.monotonic() - start
+    assert rc == 0
+    # Must have completed in significantly less than the 15s sleep:
+    # 1s (timeout) + 5s (SIGKILL escalation) + overhead < 10s
+    assert elapsed < 10.0
+    assert "dolt push" in log
 
 
 def test_sync_noop_in_server_mode(repo: Path) -> None:

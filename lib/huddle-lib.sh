@@ -470,10 +470,12 @@ huddle_sync() {
     fi
     date +%s > "$m" 2>/dev/null || true
     # Wrap each network call in the resolved timeout binary (if any) so a hung
-    # remote is killed at the cap rather than stalling the hook.
+    # remote is killed at the cap rather than stalling the hook. Pass -k 5
+    # so a process that blocks SIGTERM (or hangs in an unresponsive syscall)
+    # is forcefully killed with SIGKILL rather than waiting indefinitely.
     if [[ -n "$_HS_TIMEOUT_BIN" ]]; then
-      "$_HS_TIMEOUT_BIN" "$_HS_TIMEOUT" bd dolt push --quiet >/dev/null 2>&1 || true
-      "$_HS_TIMEOUT_BIN" "$_HS_TIMEOUT" bd dolt pull --quiet >/dev/null 2>&1 || true
+      "$_HS_TIMEOUT_BIN" -k 5 "$_HS_TIMEOUT" bd dolt push --quiet >/dev/null 2>&1 || true
+      "$_HS_TIMEOUT_BIN" -k 5 "$_HS_TIMEOUT" bd dolt pull --quiet >/dev/null 2>&1 || true
     else
       bd dolt push --quiet >/dev/null 2>&1 || true
       bd dolt pull --quiet >/dev/null 2>&1 || true
