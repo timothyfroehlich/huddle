@@ -10,6 +10,7 @@ canned JSON, then sources the lib and calls the function under test.
 import datetime
 import json
 import os
+import shutil
 import stat
 import subprocess
 import tempfile
@@ -155,6 +156,10 @@ def test_sync_fail_open_when_push_and_pull_error(repo: Path) -> None:
     assert (repo / ".agents" / "huddle" / "last-pull").exists()
 
 
+@pytest.mark.skipif(
+    not (shutil.which("timeout") or shutil.which("gtimeout")),
+    reason="requires timeout or gtimeout binary",
+)
 def test_sync_escalates_to_sigkill_when_term_ignored(repo: Path) -> None:
     # If bd ignores SIGTERM (stalled syscall / network stream), timeout's -k
     # escalation must forcefully kill it with SIGKILL rather than hang.
