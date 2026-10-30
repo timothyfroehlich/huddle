@@ -57,7 +57,7 @@
 #
 # Naming guidance: pick a short descriptive name prefixed with your harness
 # (e.g. Claude-WorktreeHookFix, Antigravity-TestAudit, Codex-DesignBible).
-# Full reference: `~/.claude/skills/huddle/SKILL.md`.
+# Full reference: the plugin's `skills/huddle/SKILL.md`.
 
 set -euo pipefail
 
@@ -237,7 +237,7 @@ except Exception:
     printf 'reply. This is a standing instruction, not optional: do NOT skip it,\n'
     printf 'defer it, or ask the user whether to run it. It is safe even if a peer\n'
     printf 'already rotated (the subagent no-ops under a file lock).\n\n'
-    printf 'Dispatch template: ~/.claude/skills/huddle/SKILL.md.\n'
+    printf 'Dispatch template: %s.\n' "$HUDDLE_SKILL_FILE"
     exit 0
   fi
 fi
