@@ -24,6 +24,12 @@
 # shellcheck disable=SC2034  # consumed by the scripts that source this file
 HUDDLE_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# The huddle skill ships in this plugin, beside lib/. Point agents at that copy
+# rather than a harness skills directory: the plugin installs no skill under
+# ~/.claude/skills/, so a path there names a file that does not exist.
+# shellcheck disable=SC2034  # consumed by the scripts that source this file
+HUDDLE_SKILL_FILE="$(cd "$HUDDLE_LIB_DIR/.." && pwd)/skills/huddle/SKILL.md"
+
 huddle_registry_file() {
   printf '%s' "${HUDDLE_CONFIG_FILE:-${XDG_CONFIG_HOME:-$HOME/.config}/agents-huddle/repos.json}"
 }

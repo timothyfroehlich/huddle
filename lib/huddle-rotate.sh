@@ -12,7 +12,7 @@
 #
 # Phase B (LLM summarization, old-bead archiving, closing, name-prune) is
 # performed by the dispatching subagent after reading phase A stdout.
-# Dispatch template: ~/.claude/skills/huddle/SKILL.md §rotation.
+# Dispatch template: the plugin's skills/huddle/SKILL.md §rotation.
 #
 # Crash-safety: steps 1-4 are the "make consistent" path. If the process dies
 # between step 4 and step 5, root notes already point to the new beads — the

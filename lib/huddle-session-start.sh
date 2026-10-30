@@ -243,7 +243,7 @@ except Exception:
     printf 'previous day, create today'\''s bead, update pointers, and post\n'
     printf '"continued in" markers on closed beads. Safe even if a peer already\n'
     printf 'rotated (the subagent no-ops under a file lock).\n\n'
-    printf 'Dispatch template: ~/.claude/skills/huddle/SKILL.md.\n\n'
+    printf 'Dispatch template: %s.\n\n' "$HUDDLE_SKILL_FILE"
   fi
 fi
 
@@ -397,7 +397,7 @@ if [[ -n "$NAME" ]]; then
   printf 'post into a channel you haven'\''t checked this turn. If a peer flagged a conflict\n'
   printf 'with your area, surface the heads-up and address it BEFORE you merge.\n\n'
   # shellcheck disable=SC2016  # backticks are literal Markdown
-  printf 'Full reference: `~/.claude/skills/huddle/SKILL.md`\n'
+  printf 'Full reference: `%s`\n' "$HUDDLE_SKILL_FILE"
 else
   printf '## Huddle identity — registration needed\n\n'
   # shellcheck disable=SC2016  # backticks are literal Markdown, not command substitution
@@ -461,7 +461,7 @@ else
   printf 'After registering, post a one-line kickoff to today'\''s bead describing what this\n'
   printf 'session is tackling (skip it for trivial questions or one-line fixes).\n'
   # shellcheck disable=SC2016  # backticks are literal Markdown
-  printf 'Full reference: `~/.claude/skills/huddle/SKILL.md`\n'
+  printf 'Full reference: `%s`\n' "$HUDDLE_SKILL_FILE"
 fi
 
 # --- Work digest (PP-llkj) ---
